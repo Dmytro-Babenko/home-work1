@@ -19,9 +19,11 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict, unknown_exte
             new_name = f'{new_stem}{extension}'
             category = category_by_extension.get(extension)
             if category == None:
-                base_folder = folder
                 if extension not in unknown_extensions:
                     unknown_extensions.append(extension)
+                if new_stem == old_stem:
+                    continue
+                base_folder = folder
             else:
                 if extension not in known_extensions:
                     known_extensions.append(extension)
@@ -33,7 +35,7 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict, unknown_exte
                 new_name, new_path = find_free_name(new_stem, base_folder)
                 shutil.unpack_archive(file, new_path)
                 file.unlink()
-            elif category != None or (category == None and new_stem != old_stem):
+            else:
                 new_name, new_path = find_free_name(new_stem, base_folder, extension=extension)
                 file.rename(new_path)
 
