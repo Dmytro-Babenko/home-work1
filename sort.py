@@ -1,12 +1,11 @@
-import pathlib, shutil, re
+import pathlib, shutil, re, sys
 
 def put_in_order(folder: pathlib.Path, category_by_extension: dict, unknown_extensions: list, known_extensions: list, files_categories: dict):
     
     for file in folder.iterdir():
-        if file.name in files_categories:
-            continue
-
-        elif file.is_dir():
+        if file.is_dir():
+            if file.name in files_categories:
+                continue
             try: 
                 file.rmdir()
             except OSError:
@@ -24,24 +23,22 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict, unknown_exte
                 if new_stem == old_stem:
                     continue
                 base_folder = folder
+                new_name, new_path = find_free_name(new_stem, base_folder, extension=extension)
+                file.rename(new_path)
             else:
                 if extension not in known_extensions:
                     known_extensions.append(extension)
                 base_folder = folder.joinpath(category)
                 if not base_folder.exists():
                     base_folder.mkdir()
-
-            if category == 'archives':
-                new_name, new_path = find_free_name(new_stem, base_folder)
-                shutil.unpack_archive(file, new_path)
-                file.unlink()
-            else:
-                new_name, new_path = find_free_name(new_stem, base_folder, extension=extension)
-                file.rename(new_path)
-
-            if category != None:
-                files_categories[category].append(new_name)
-                
+                if category == 'archives':
+                    new_name, new_path = find_free_name(new_stem, base_folder)
+                    shutil.unpack_archive(file, new_path)
+                    file.unlink()
+                else:
+                    new_name, new_path = find_free_name(new_stem, base_folder, extension=extension)
+                    file.rename(new_path)
+                files_categories[category].append(new_name)                
     old_folder_name = folder.name
     new_folder_name = normalize(TRANS, old_folder_name)
     if new_folder_name != old_folder_name:
@@ -67,6 +64,9 @@ def find_free_name (new_stem: str, base_folder: pathlib.Path, extension = ''):
             i += 1
     return new_name, new_path
 
+# def file_processing (file: pathlib.Path, category_by_extension: dict, unknown_extensions: list, known_extensions: list, files_categories: dict):
+
+
 
 def make_translitarate_table() -> dict:
     CYRILLIC_SYMBOLS = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяєіїґ"
@@ -78,24 +78,32 @@ def make_translitarate_table() -> dict:
         TRANS[ord(c.upper())] = l.upper()
     return TRANS
 
-TRANS = make_translitarate_table()
 
+
+path = sys.argv[1]
+folder = pathlib.Path(path)
+while True:
+    if folder.is_dir():
+        break
+    else:
+        path = input('There are no folders on this path. Please write another: ')
+        folder = pathlib.Path(path)
+
+TRANS = make_translitarate_table()
 unknown_extensions = [] 
 known_extensions = []
 files_categories = {'archives' : [], 'video' : [], 'audio' : [], 'documents' : [], 'images' : []}
-category_by_extension = {'.jpeg': 'images', '.png': 'images', '.jpg': 'images', '.svg': 'images', '.avi': 'video', '.mp4': 'video', '.mov': 'video', '.mkv': 'video', '.doc': 'documents', '.docx': 'documents', '.txt': 'documents', '.pdf': 'documents', '.xlsx': 'documents', '.pptx': 'documents', '.mp3': 'music', '.ogg': 'music', '.wav': 'music', '.amr': 'music', '.zip': 'archives', '.gz': 'archives', '.tar': 'archives'}
+category_by_extension = {'.jpeg': 'images', '.png': 'images', '.jpg': 'images', '.svg': 'images', 
+                            '.avi': 'video', '.mp4': 'video', '.mov': 'video', '.mkv': 'video', 
+                            '.doc': 'documents', '.docx': 'documents', '.txt': 'documents', 
+                            '.pdf': 'documents', '.xlsx': 'documents', '.pptx': 'documents', 
+                            '.mp3': 'music', '.ogg': 'music', '.wav': 'music', '.amr': 'music', 
+                            '.zip': 'archives', '.gz': 'archives', '.tar': 'archives'}
 
-path = r'D:\Мотлох'
-# path2 = r'D:\Мотлох\Новая папка(.zip'
-folder = pathlib.Path(path)
-# shutil.rmtree(folder)
-# folder.unlink()
-
-
-print(put_in_order(folder, category_by_extension, unknown_extensions, known_extensions, files_categories))
+put_in_order(folder, category_by_extension, unknown_extensions, known_extensions, files_categories)
 
 
-
+# python sort.py /user/Desktop/Мотлох
 
 
 
