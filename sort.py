@@ -18,9 +18,9 @@ def make_translitarate_table() -> dict:
 
 def normalize(TRANS: dict, word: str) -> str:
     '''
-    Сhecks if the string contains non-Latin letters or non-digits
+    Сhecks if the string contains non-Latin letters or non-digits.
     Replace each character in the string using the given translitaration table.
-    Then replace all characters in the string by _, exept latin and didgits 
+    Then replace all characters in the string by _, exept latin and didgits. 
     '''
     if re.match(r'\b\w\b', word) is not None:
         return word
@@ -34,7 +34,8 @@ def find_free_name (new_stem: str, base_folder: pathlib.Path,
     '''
     Check if there is a file with this name in the folder.
     If there is, adds an index to the end of the folder name 
-    until the name will become unique 
+    until the name will become unique. 
+
     Return unique name and new Path
     '''
     new_name = f'{new_stem}{extension}'
@@ -47,12 +48,22 @@ def find_free_name (new_stem: str, base_folder: pathlib.Path,
                 new_path = base_folder.joinpath(new_name)
                 break
             i += 1
-    return new_name, new_path
+    return new_name, new_path    
 
-def put_in_order(folder: pathlib.Path, category_by_extension: dict, 
-                 unknown_extensions: list, known_extensions: list, 
-                 files_categories: dict, TRANS = make_translitarate_table()) -> tuple[dict, list, list]:
+def put_in_order(folder: pathlib.Path, category_by_extension: dict,
+                 files_categories: dict, unknown_extensions = [], 
+                 known_extensions = [], TRANS = make_translitarate_table()) -> tuple[dict, list, list]:
+    '''
+    Remove empty folders
+
+    Recognizes the category of the file and processes file according to it:
+    rename and replace
     
+    Rename folder
+
+    Returns lists of known and unknown extensions 
+    and dictionary with lists of files in the folder by category
+    '''
     for file in folder.iterdir():
         if file.is_dir():
             if file.name in files_categories:
@@ -60,21 +71,21 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
             try: 
                 file.rmdir()
             except OSError:
-                put_in_order(file, category_by_extension, unknown_extensions, known_extensions, files_categories,  TRANS)
-        
+                put_in_order(
+                    file, category_by_extension, files_categories, 
+                    unknown_extensions, known_extensions, TRANS
+                    )
         else:
             extension = file.suffix
             old_stem = file.stem
             new_stem = normalize(TRANS, old_stem)
-            new_name = f'{new_stem}{extension}'
             category = category_by_extension.get(extension)
             if category == None:
                 if extension not in unknown_extensions:
                     unknown_extensions.append(extension)
                 if new_stem == old_stem:
                     continue
-                base_folder = folder
-                new_name, new_path = find_free_name(new_stem, base_folder, extension)
+                new_name, new_path = find_free_name(new_stem, folder, extension)
                 file.rename(new_path)
             else:
                 if extension not in known_extensions:
@@ -98,7 +109,6 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
     return files_categories, unknown_extensions, known_extensions
 
 def main():
-
     try:
         path = sys.argv[1]
     except IndexError:
@@ -112,9 +122,6 @@ def main():
             path = input('There are no folders on this path. Please write another: ')
             folder = pathlib.Path(path)
 
-    # TRANS = make_translitarate_table()
-    unknown_extensions = [] 
-    known_extensions = []
     files_categories = {'archives' : [], 'video' : [], 'audio' : [], 
                         'documents' : [], 'images' : []}
     category_by_extension = {
@@ -126,16 +133,15 @@ def main():
         '.zip': 'archives', '.gz': 'archives', '.tar': 'archives'
         }
 
-    put_in_order(folder, category_by_extension, unknown_extensions, known_extensions, files_categories)
+    files_categories, unknown_extensions, known_extensions = put_in_order(
+                                                                folder, 
+                                                                category_by_extension, 
+                                                                files_categories
+                                                                )
     return files_categories, unknown_extensions, known_extensions
 
-# if __name__ == '__main__':
-#     print(main())
+if __name__ == '__main__':
+    main()
 
 # python sort.py D:/Motloh
-
-
-
-
-
 
