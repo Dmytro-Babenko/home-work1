@@ -104,7 +104,7 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
     old_folder_name = folder.name
     new_folder_name = normalize(TRANS, old_folder_name)
     if new_folder_name != old_folder_name:
-        new_folder_name, new_path = find_free_name(new_folder_name, folder.parent)
+        new_folder_name, new_path = find_free_name(new_folder_name, folder.parent, '')
         folder.rename(new_path) 
     return files_categories, unknown_extensions, known_extensions
 
@@ -143,5 +143,5 @@ def main():
 if __name__ == '__main__':
     main()
 
-# python sort.py D:/Motloh
+# python sort.py D:/Motloh_kopiya
 
