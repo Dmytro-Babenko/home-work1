@@ -35,7 +35,17 @@ def find_free_name (new_stem: str, base_folder: pathlib.Path,
                 new_path = base_folder.joinpath(new_name)
                 break
             i += 1
-    return new_name, new_path    
+    return new_name, new_path  
+
+def get_folder_contents(folder: pathlib.Path, files_categories = {}, known_extensions = []) -> dict:
+    '''write files names in the folder to the category(folder name)'''
+    if folder.name not in files_categories:
+        files_categories[folder.name] = []
+    for file in folder.iterdir():
+        files_categories[folder.name].append(file.name)
+        if file.suffix not in known_extensions:
+            known_extensions.append(file.suffix)
+    return files_categories, known_extensions
 
 def put_in_order(folder: pathlib.Path, category_by_extension: dict,
                  files_categories = {}, unknown_extensions = [], 
@@ -53,15 +63,20 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
     '''
     for file in folder.iterdir():
         if file.is_dir():
-            if file.name in set(category_by_extension.values()):
-                continue
             try: 
                 file.rmdir()
             except OSError:
+                if file.name in set(category_by_extension.values()):
+                    get_folder_contents(file, files_categories, known_extensions)
+                    continue
                 put_in_order(
                     file, category_by_extension, files_categories, 
                     unknown_extensions, known_extensions, TRANS
                     )
+                try:
+                    file.rmdir()
+                except:
+                    continue
         else:
             extension = file.suffix
             old_stem = file.stem
@@ -75,6 +90,7 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
                 new_name, new_path = find_free_name(new_stem, folder, extension)
                 file.rename(new_path)
             else:
+                old_name = file.name
                 if extension not in known_extensions:
                     known_extensions.append(extension)
                 base_folder = folder.joinpath(category)
@@ -87,10 +103,11 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
                 else:
                     new_name, new_path = find_free_name(new_stem, base_folder, extension)
                     file.rename(new_path)
-                if category not in files_categories:
-                    files_categories[category] = [new_name]
-                else:
-                    files_categories[category].append(new_name)                
+                if old_name > category:
+                    if category not in files_categories :
+                        files_categories[category] = [new_name]
+                    else:
+                        files_categories[category].append(new_name)                
     old_folder_name = folder.name
     new_folder_name = norm.normalize(TRANS, old_folder_name)
     if new_folder_name != old_folder_name:
@@ -131,4 +148,3 @@ if __name__ == '__main__':
     print(main())
 
 # python sort.py D:/Motloh
-
