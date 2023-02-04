@@ -1,4 +1,4 @@
-import pathlib, shutil, re, sys
+import pathlib, shutil, sys, norm
 
 def make_translitarate_table() -> dict:
     '''Make translitarate table from cyrillic to latin'''
@@ -15,19 +15,6 @@ def make_translitarate_table() -> dict:
         TRANS[ord(c)] = l
         TRANS[ord(c.upper())] = l.upper()
     return TRANS
-
-def normalize(TRANS: dict, word: str) -> str:
-    '''
-    Сhecks if the string contains non-Latin letters or non-digits.
-    Replace each character in the string using the given translitaration table.
-    Then replace all characters in the string by _, exept latin and didgits. 
-    '''
-    if re.match(r'\b\w\b', word) is not None:
-        return word
-
-    name_translitarate = word.translate(TRANS)
-    normalized_word = re.sub(r'\W', '_', name_translitarate) 
-    return normalized_word
 
 def find_free_name (new_stem: str, base_folder: pathlib.Path, 
                     extension) -> tuple[str, pathlib.Path]:
@@ -51,7 +38,7 @@ def find_free_name (new_stem: str, base_folder: pathlib.Path,
     return new_name, new_path    
 
 def put_in_order(folder: pathlib.Path, category_by_extension: dict,
-                 files_categories: dict, unknown_extensions = [], 
+                 files_categories = {}, unknown_extensions = [], 
                  known_extensions = [], TRANS = make_translitarate_table()) -> tuple[dict, list, list]:
     '''
     Remove empty folders
@@ -66,7 +53,7 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
     '''
     for file in folder.iterdir():
         if file.is_dir():
-            if file.name in files_categories:
+            if file.name in set(category_by_extension.values()):
                 continue
             try: 
                 file.rmdir()
@@ -78,7 +65,7 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
         else:
             extension = file.suffix
             old_stem = file.stem
-            new_stem = normalize(TRANS, old_stem)
+            new_stem = norm.normalize(TRANS, old_stem)
             category = category_by_extension.get(extension)
             if category == None:
                 if extension not in unknown_extensions:
@@ -100,9 +87,12 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
                 else:
                     new_name, new_path = find_free_name(new_stem, base_folder, extension)
                     file.rename(new_path)
-                files_categories[category].append(new_name)                
+                if category not in files_categories:
+                    files_categories[category] = [new_name]
+                else:
+                    files_categories[category].append(new_name)                
     old_folder_name = folder.name
-    new_folder_name = normalize(TRANS, old_folder_name)
+    new_folder_name = norm.normalize(TRANS, old_folder_name)
     if new_folder_name != old_folder_name:
         new_folder_name, new_path = find_free_name(new_folder_name, folder.parent, '')
         folder.rename(new_path) 
@@ -122,8 +112,6 @@ def main():
             path = input('There are no folders on this path. Please write another: ')
             folder = pathlib.Path(path)
 
-    files_categories = {'archives' : [], 'video' : [], 'audio' : [], 
-                        'documents' : [], 'images' : []}
     category_by_extension = {
         '.jpeg': 'images', '.png': 'images', '.jpg': 'images', '.svg': 'images', 
         '.avi': 'video', '.mp4': 'video', '.mov': 'video', '.mkv': 'video', 
@@ -135,13 +123,12 @@ def main():
 
     files_categories, unknown_extensions, known_extensions = put_in_order(
                                                                 folder, 
-                                                                category_by_extension, 
-                                                                files_categories
+                                                                category_by_extension
                                                                 )
     return files_categories, unknown_extensions, known_extensions
 
 if __name__ == '__main__':
-    main()
+    print(main())
 
-# python sort.py D:/Motloh_kopiya
+# python sort.py D:/Motloh
 
