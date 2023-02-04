@@ -39,12 +39,15 @@ def find_free_name (new_stem: str, base_folder: pathlib.Path,
 
 def get_folder_contents(folder: pathlib.Path, files_categories = {}, known_extensions = []) -> dict:
     '''write files names in the folder to the category(folder name)'''
-    if folder.name not in files_categories:
-        files_categories[folder.name] = []
-    for file in folder.iterdir():
-        files_categories[folder.name].append(file.name)
-        if file.suffix not in known_extensions:
-            known_extensions.append(file.suffix)
+    try:
+        folder.rmdir()
+    except OSError:
+        if folder.name not in files_categories:
+            files_categories[folder.name] = []
+        for file in folder.iterdir():
+            files_categories[folder.name].append(file.name)
+            if file.suffix not in known_extensions:
+                known_extensions.append(file.suffix)
     return files_categories, known_extensions
 
 def put_in_order(folder: pathlib.Path, category_by_extension: dict,
@@ -63,20 +66,14 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
     '''
     for file in folder.iterdir():
         if file.is_dir():
-            try: 
-                file.rmdir()
-            except OSError:
-                if file.name in set(category_by_extension.values()):
-                    get_folder_contents(file, files_categories, known_extensions)
-                    continue
+            if file.name in set(category_by_extension.values()):
+                get_folder_contents(file, files_categories, known_extensions)
+            else:
                 put_in_order(
                     file, category_by_extension, files_categories, 
                     unknown_extensions, known_extensions, TRANS
                     )
-                try:
-                    file.rmdir()
-                except:
-                    continue
+
         else:
             extension = file.suffix
             old_stem = file.stem
@@ -107,12 +104,15 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
                     if category not in files_categories :
                         files_categories[category] = [new_name]
                     else:
-                        files_categories[category].append(new_name)                
-    old_folder_name = folder.name
-    new_folder_name = norm.normalize(TRANS, old_folder_name)
-    if new_folder_name != old_folder_name:
-        new_folder_name, new_path = find_free_name(new_folder_name, folder.parent, '')
-        folder.rename(new_path) 
+                        files_categories[category].append(new_name)     
+    try:
+        folder.rmdir()
+    except OSError:
+        old_folder_name = folder.name
+        new_folder_name = norm.normalize(TRANS, old_folder_name)
+        if new_folder_name != old_folder_name:
+            new_folder_name, new_path = find_free_name(new_folder_name, folder.parent, '')
+            folder.rename(new_path) 
     return files_categories, unknown_extensions, known_extensions
 
 def main():
