@@ -1,21 +1,5 @@
 import pathlib, shutil, sys, norm
 
-def make_translitarate_table() -> dict:
-    '''Make translitarate table from cyrillic to latin'''
-    CYRILLIC_SYMBOLS = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяєіїґ"
-    TRANSLATION = (
-        "a", "b", "v", "g", "d", "e", "e", "j", "z", 
-        "i", "j", "k", "l", "m", "n", "o", "p", "r", 
-        "s", "t", "u","f", "h", "ts", "ch", "sh", "sch", 
-        "", "y", "", "e", "yu", "ya", "je", "i", "ji", "g"
-        )
-    TRANS = {}
-
-    for c, l in zip(CYRILLIC_SYMBOLS, TRANSLATION):
-        TRANS[ord(c)] = l
-        TRANS[ord(c.upper())] = l.upper()
-    return TRANS
-
 def find_free_name (new_stem: str, base_folder: pathlib.Path, 
                     extension) -> tuple[str, pathlib.Path]:
     '''
@@ -52,7 +36,7 @@ def get_folder_contents(folder: pathlib.Path, files_categories = {}, known_exten
 
 def put_in_order(folder: pathlib.Path, category_by_extension: dict,
                  files_categories = {}, unknown_extensions = [], 
-                 known_extensions = [], TRANS = make_translitarate_table()) -> tuple[dict, list, list]:
+                 known_extensions = []) -> tuple[dict, list, list]:
     '''
     Remove empty folders
 
@@ -71,13 +55,13 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
             else:
                 put_in_order(
                     file, category_by_extension, files_categories, 
-                    unknown_extensions, known_extensions, TRANS
+                    unknown_extensions, known_extensions
                     )
 
         else:
             extension = file.suffix
             old_stem = file.stem
-            new_stem = norm.normalize(TRANS, old_stem)
+            new_stem = norm.normalize(old_stem)
             category = category_by_extension.get(extension)
             if category == None:
                 if extension not in unknown_extensions:
@@ -109,7 +93,7 @@ def put_in_order(folder: pathlib.Path, category_by_extension: dict,
         folder.rmdir()
     except OSError:
         old_folder_name = folder.name
-        new_folder_name = norm.normalize(TRANS, old_folder_name)
+        new_folder_name = norm.normalize(old_folder_name)
         if new_folder_name != old_folder_name:
             new_folder_name, new_path = find_free_name(new_folder_name, folder.parent, '')
             folder.rename(new_path) 
@@ -148,3 +132,9 @@ if __name__ == '__main__':
     print(main())
 
 # python sort.py D:/Motloh
+
+
+word2 = 'рврсо'
+b = norm.normalize(word2)
+print(b)
+
